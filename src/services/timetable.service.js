@@ -1,0 +1,339 @@
+const Timetable = require("../models/Timetable.model");
+const School = require("../models/School.model");
+const Class = require("../models/Class.model");
+const Subject = require("../models/Subject.model");
+const Teacher = require("../models/Teacher.model");
+const AcademicSession = require("../models/AcademicSession.model");
+const AppError = require("../utils/AppError");
+
+class TimetableService {
+  // Create timetable entry
+  async createTimetable(data) {
+    const {
+      school,
+      class: classId,
+      subject,
+      teacher,
+      academicSession,
+      day,
+      startTime,
+      endTime,
+      room,
+    } = data;
+
+    // Check school
+    const existingSchool = await School.findById(school);
+
+    if (!existingSchool) {
+      throw new AppError("School not found", 404);
+    }
+
+    // Check class
+    const existingClass = await Class.findOne({
+      _id: classId,
+      school,
+      academicSession,
+    });
+
+    if (!existingClass) {
+      throw new AppError(
+        "Class not found for this academic session",
+        404
+      );
+    }
+
+    // Check subject
+    const existingSubject = await Subject.findOne({
+      _id: subject,
+      school,
+    });
+
+    if (!existingSubject) {
+      throw new AppError(
+        "Subject not found for this school",
+        404
+      );
+    }
+
+    // Check teacher
+    const existingTeacher = await Teacher.findById(
+      teacher
+    );
+
+    if (!existingTeacher) {
+      throw new AppError("Teacher not found", 404);
+    }
+
+    // Check academic session
+    const session = await AcademicSession.findOne({
+      _id: academicSession,
+      school,
+    });
+
+    if (!session) {
+      throw new AppError(
+        "Academic session not found for this school",
+        404
+      );
+    }
+
+    // Basic time validation
+    if (startTime >= endTime) {
+      throw new AppError(
+        "End time must be after start time",
+        400
+      );
+    }
+
+    // Prevent same class from having overlapping schedule
+    const classConflict = await Timetable.findOne({
+      class: classId,
+      academicSession,
+      day,
+      isActive: true,
+      $or: [
+        {
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime },
+        },
+      ],
+    });
+
+    if (classConflict) {
+      throw new AppError(
+        "This class already has a timetable entry during this time",
+        409
+      );
+    }
+
+    // Prevent teacher double-booking
+    const teacherConflict = await Timetable.findOne({
+      teacher,
+      academicSession,
+      day,
+      isActive: true,
+      $or: [
+        {
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime },
+        },
+      ],
+    });
+
+    if (teacherConflict) {
+      throw new AppError(
+        "This teacher is already assigned during this time",
+        409
+      );
+    }
+
+    const timetable = await Timetable.create({
+      school,
+      class: classId,
+      subject,
+      teacher,
+      academicSession,
+      day,
+      startTime,
+      endTime,
+      room,
+    });
+
+    return timetable;
+  }
+
+  // Get timetable by ID
+  async findById(id) {
+    const timetable = await Timetable.findById(id)
+      .populate("school", "name")
+      .populate("class", "name level arm")
+      .populate("subject", "name code")
+      .populate("teacher", "firstName lastName email")
+      .populate(
+        "academicSession",
+        "name startDate endDate"
+      );
+
+    if (!timetable) {
+      throw new AppError(
+        "Timetable entry not found",
+        404
+      );
+    }
+
+    return timetable;
+  }
+
+  // Get timetable for a class
+  async findByClass(classId, academicSession) {
+    const existingClass = await Class.findById(classId);
+
+    if (!existingClass) {
+      throw new AppError("Class not found", 404);
+    }
+
+    const filter = {
+      class: classId,
+      isActive: true,
+    };
+
+    if (academicSession) {
+      filter.academicSession = academicSession;
+    }
+
+    return Timetable.find(filter)
+      .populate("subject", "name code")
+      .populate(
+        "teacher",
+        "firstName lastName email"
+      )
+      .populate(
+        "academicSession",
+        "name startDate endDate"
+      )
+      .sort({
+        day: 1,
+        startTime: 1,
+      });
+  }
+
+  // Get timetable for a teacher
+  async findByTeacher(teacherId, academicSession) {
+    const teacher = await Teacher.findById(teacherId);
+
+    if (!teacher) {
+      throw new AppError("Teacher not found", 404);
+    }
+
+    const filter = {
+      teacher: teacherId,
+      isActive: true,
+    };
+
+    if (academicSession) {
+      filter.academicSession = academicSession;
+    }
+
+    return Timetable.find(filter)
+      .populate("class", "name level arm")
+      .populate("subject", "name code")
+      .populate(
+        "academicSession",
+        "name startDate endDate"
+      )
+      .sort({
+        day: 1,
+        startTime: 1,
+      });
+  }
+
+  // Get complete school timetable
+  async findBySchool(schoolId, academicSession) {
+    const school = await School.findById(schoolId);
+
+    if (!school) {
+      throw new AppError("School not found", 404);
+    }
+
+    const filter = {
+      school: schoolId,
+      isActive: true,
+    };
+
+    if (academicSession) {
+      filter.academicSession = academicSession;
+    }
+
+    return Timetable.find(filter)
+      .populate("class", "name level arm")
+      .populate("subject", "name code")
+      .populate(
+        "teacher",
+        "firstName lastName email"
+      )
+      .populate(
+        "academicSession",
+        "name startDate endDate"
+      )
+      .sort({
+        day: 1,
+        startTime: 1,
+      });
+  }
+
+  // Update timetable
+  async updateTimetable(id, data) {
+    const timetable = await Timetable.findById(id);
+
+    if (!timetable) {
+      throw new AppError(
+        "Timetable entry not found",
+        404
+      );
+    }
+
+    const allowedFields = [
+      "day",
+      "startTime",
+      "endTime",
+      "room",
+      "subject",
+      "teacher",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (data[field] !== undefined) {
+        timetable[field] = data[field];
+      }
+    });
+
+    if (
+      timetable.startTime >=
+      timetable.endTime
+    ) {
+      throw new AppError(
+        "End time must be after start time",
+        400
+      );
+    }
+
+    await timetable.save();
+
+    return timetable;
+  }
+
+  // Deactivate timetable entry
+  async deactivateTimetable(id) {
+    const timetable = await Timetable.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      { new: true }
+    );
+
+    if (!timetable) {
+      throw new AppError(
+        "Timetable entry not found",
+        404
+      );
+    }
+
+    return timetable;
+  }
+
+  // Delete timetable entry
+  async deleteTimetable(id) {
+    const timetable =
+      await Timetable.findByIdAndDelete(id);
+
+    if (!timetable) {
+      throw new AppError(
+        "Timetable entry not found",
+        404
+      );
+    }
+
+    return timetable;
+  }
+}
+
+module.exports = new TimetableService();
