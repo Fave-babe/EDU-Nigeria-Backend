@@ -43,11 +43,7 @@ const updateSuperAdmin = async (id, data) => {
     throw new AppError("SuperAdmin not found", 404);
   }
 
-  const allowedFields = [
-    "fullName",
-    "email",
-    "phone",
-  ];
+  const allowedFields = ["fullName", "email", "phone"];
 
   allowedFields.forEach((field) => {
     if (data[field] !== undefined) {
