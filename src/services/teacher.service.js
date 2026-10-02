@@ -4,7 +4,7 @@ const AppError = require("../utils/AppError");
 const Class = require("../models/Class.model");
 const Enrollment = require("../models/Enrollement.model");
 const Attendance = require("../models/Attendance.model");
-const Timetable = require("../models/Timetable.model");
+const Timetable = require("../models/timetable.model");
 const Subject = require("../models/Subject.model");
 
 class TeacherService {
