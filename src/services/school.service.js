@@ -7,7 +7,7 @@ const Admin = require("../models/Admin.model");
 const Class = require("../models/Class.model");
 const AcademicSession = require("../models/AcademicSession.model");
 const Enrollment = require("../models/Enrollement.model");
-const Attendance = require("../models/Attendance.model");
+const Attendance = require("../models/attendance.model");
 const { ROLES } = require("../config/constant");
 const createSchool = async (data, userId) => {
   const {
@@ -212,6 +212,7 @@ const updateSchool = async (schoolId, data, userId) => {
 module.exports = {
   createSchool,
   getSchoolById,
+  getSchoolDetails,
   getAllSchools,
   updateSchool,
   toggleSchoolStatus,

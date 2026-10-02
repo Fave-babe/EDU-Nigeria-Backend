@@ -1,4 +1,4 @@
-const classSubjectService = require("../services/classSubject.service");
+const classSubjectService = require("../services/classsubject.service");
 
 const createClassSubject = async (req, res, next) => {
   try {

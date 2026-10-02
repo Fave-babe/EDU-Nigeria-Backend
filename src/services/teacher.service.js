@@ -3,7 +3,7 @@ const School = require("../models/School.model");
 const AppError = require("../utils/AppError");
 const Class = require("../models/Class.model");
 const Enrollment = require("../models/Enrollement.model");
-const Attendance = require("../models/Attendance.model");
+const Attendance = require("../models/attendance.model");
 const Timetable = require("../models/timetable.model");
 const Subject = require("../models/Subject.model");
 

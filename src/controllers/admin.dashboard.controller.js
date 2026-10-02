@@ -19,7 +19,7 @@ exports.getOverview = async (req, res, next) => {
 exports.getDashboardOverview = async (req, res, next) => {
   try {
     const dashboard =
-      await adminService.getDashboardOverview(req.user);
+      await adminDashboardService.getDashboardOverview(req.user);
 
     api.success(
       res,

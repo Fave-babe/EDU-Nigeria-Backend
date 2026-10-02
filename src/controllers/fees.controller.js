@@ -1,4 +1,4 @@
-const feeService = require("../services/fee.service");
+const feeService = require("../services/fees.service");
 const api = require("../utils/apiResponse");
 
 // Create fee

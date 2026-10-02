@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const feeController = require("../controllers/fee.controller");
+const feeController = require("../controllers/fees.controller");
 
 const {
   protect,

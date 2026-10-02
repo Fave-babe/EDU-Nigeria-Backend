@@ -1,4 +1,4 @@
-const superAdminService = require("../services/superAdmin.service");
+const superAdminService = require("../services/superadmin.service");
 const api = require("../utils/apiResponse");
 
 exports.createSuperAdmin = async (req, res, next) => {

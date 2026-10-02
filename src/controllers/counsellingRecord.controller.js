@@ -1,4 +1,4 @@
-const counsellingRecordService = require("../services/counsellingRecord.service");
+const counsellingRecordService = require("../services/CounsellingRecord.service");
 const api = require("../utils/apiResponse");
 
 exports.createRecord = async (req, res, next) => {

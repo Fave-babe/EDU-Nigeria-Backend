@@ -7,7 +7,7 @@ const Staff = require("../models/Staff.model");
 const Parent = require("../models/Parent.model");
 const Class = require("../models/Class.model");
 const Enrollment = require("../models/Enrollement.model");
-const Attendance = require("../models/Attendance.model");
+const Attendance = require("../models/attendance.model");
 
 const AppError = require("../utils/AppError");
 const { ROLES } = require("../config/constant");

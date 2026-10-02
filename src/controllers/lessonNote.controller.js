@@ -1,6 +1,6 @@
-const LessonNote = require("../models/lessonNote.model");
-const Class = require("../models/class.model");
-const Enrollment = require("../models/enrollement.model");
+const LessonNote = require("../models/LessonNote.model");
+const Class = require("../models/Class.model");
+const Enrollment = require("../models/Enrollement.model");
 
 // =====================================================
 // CREATE LESSON NOTE

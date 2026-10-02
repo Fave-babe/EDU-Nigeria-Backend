@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const classSubjectController = require("../controllers/classSubject.controller");
+const classSubjectController = require("../controllers/classsubject.controller");
 
 const {
   protect,

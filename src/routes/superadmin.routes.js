@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const ctrl = require("../controllers/superAdmin.controller");
+const ctrl = require("../controllers/superadmin.controller");
 
 const {
   protect,

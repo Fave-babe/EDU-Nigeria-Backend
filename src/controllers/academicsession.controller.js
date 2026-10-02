@@ -1,4 +1,4 @@
-const academicSessionService = require("../services/academicSession.service");
+const academicSessionService = require("../services/academicsession.service");
 const api = require("../utils/apiResponse");
 
 // Create academic session
