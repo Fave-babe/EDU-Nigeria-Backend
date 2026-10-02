@@ -10,34 +10,24 @@ const Subject = require("../models/Subject.model");
 class TeacherService {
   // Create teacher
   async createTeacher(data) {
-  const { email, school } = data;
+    const { email, school } = data;
 
-  if (!school) {
-    throw new AppError(
-      "School is required for teacher",
-      400
-    );
-  }
+    if (!school) {
+      throw new AppError("School is required for teacher", 400);
+    }
 
-  // Check school
+    // Check school
 
-  const existingSchool =
-    await School.findById(school);
+    const existingSchool = await School.findById(school);
 
-  if (!existingSchool) {
-    throw new AppError(
-      "School not found",
-      404
-    );
-  }
+    if (!existingSchool) {
+      throw new AppError("School not found", 404);
+    }
     // Check duplicate email
     const existingTeacher = await Teacher.findOne({ email });
 
     if (existingTeacher) {
-      throw new AppError(
-        "A teacher with this email already exists",
-        409
-      );
+      throw new AppError("A teacher with this email already exists", 409);
     }
 
     const teacher = await Teacher.create(data);
@@ -47,11 +37,10 @@ class TeacherService {
 
   // Get teacher by ID
   async findById(teacherId) {
-    const teacher = await Teacher.findById(teacherId)
-      .populate(
-        "school",
-        "name schoolType email phone"
-      );
+    const teacher = await Teacher.findById(teacherId).populate(
+      "school",
+      "name schoolType email phone",
+    );
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404);
@@ -61,13 +50,7 @@ class TeacherService {
   }
 
   // Get all teachers
-  async findAll({
-    school,
-    status,
-    isActive,
-    page = 1,
-    limit = 20,
-  }) {
+  async findAll({ school, status, isActive, page = 1, limit = 20 }) {
     const filter = {};
 
     if (school) {
@@ -83,10 +66,7 @@ class TeacherService {
     }
 
     page = Math.max(Number(page) || 1, 1);
-    limit = Math.min(
-      Math.max(Number(limit) || 20, 1),
-      100
-    );
+    limit = Math.min(Math.max(Number(limit) || 20, 1), 100);
 
     const skip = (page - 1) * limit;
 
@@ -127,27 +107,17 @@ class TeacherService {
       });
 
       if (existingTeacher) {
-        throw new AppError(
-          "A teacher with this email already exists",
-          409
-        );
+        throw new AppError("A teacher with this email already exists", 409);
       }
     }
 
     // Don't update password through this method
     delete data.password;
 
-    const teacher = await Teacher.findByIdAndUpdate(
-      teacherId,
-      data,
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).populate(
-      "school",
-      "name schoolType"
-    );
+    const teacher = await Teacher.findByIdAndUpdate(teacherId, data, {
+      new: true,
+      runValidators: true,
+    }).populate("school", "name schoolType");
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404);
@@ -164,7 +134,7 @@ class TeacherService {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!teacher) {
@@ -182,7 +152,7 @@ class TeacherService {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!teacher) {
@@ -194,9 +164,7 @@ class TeacherService {
 
   // Delete teacher
   async deleteTeacher(teacherId) {
-    const teacher = await Teacher.findByIdAndDelete(
-      teacherId
-    );
+    const teacher = await Teacher.findByIdAndDelete(teacherId);
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404);
@@ -206,142 +174,136 @@ class TeacherService {
   }
 
   // Get teacher dashboard
-async getTeacherDashboard(teacherId) {
-  const teacher = await Teacher.findById(teacherId)
-    .populate("school", "name schoolType email phone");
+  async getTeacherDashboard(teacherId) {
+    const teacher = await Teacher.findById(teacherId).populate(
+      "school",
+      "name schoolType email phone",
+    );
 
-  if (!teacher) {
-    throw new AppError("Teacher not found", 404);
-  }
+    if (!teacher) {
+      throw new AppError("Teacher not found", 404);
+    }
 
-  const classes = await Class.find({
-    school: teacher.school._id,
-    classTeacher: teacher._id,
-    isActive: true,
-  })
-    .populate("academicSession", "name startDate endDate")
-    .sort({ level: 1, name: 1, arm: 1 });
-
-  const classIds = classes.map((item) => item._id);
-  const startOfDay = new Date();
-startOfDay.setHours(0, 0, 0, 0);
-
-const endOfDay = new Date();
-endOfDay.setHours(23, 59, 59, 999);
-
-const todayAttendance = await Attendance.find({
-  school: teacher.school._id,
-  class: { $in: classIds },
-  date: {
-    $gte: startOfDay,
-    $lte: endOfDay,
-  },
-});
-const days = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-
-const today = days[new Date().getDay()];
-
-const timetable = await Timetable.find({
-  school: teacher.school._id,
-  teacher: teacher._id,
-  isActive: true,
-})
-  .populate("class", "name level arm")
-  .populate("subject", "name code category")
-  .populate("academicSession", "name startDate endDate")
-  .sort({ day: 1, startTime: 1 });
-
-const todayTimetable = timetable.filter(
-  (item) => item.day === today
-);
-
-const subjectIds = [
-  ...new Set(
-    timetable
-      .filter((item) => item.subject)
-      .map((item) => item.subject._id.toString())
-  ),
-];
-
-const subjects = await Subject.find({
-  _id: { $in: subjectIds },
-  school: teacher.school._id,
-  isActive: true,
-}).sort({ name: 1 });
-
-const attendanceStats = {
-  present: todayAttendance.filter(
-    (item) => item.status === "present"
-  ).length,
-
-  absent: todayAttendance.filter(
-    (item) => item.status === "absent"
-  ).length,
-
-  late: todayAttendance.filter(
-    (item) => item.status === "late"
-  ).length,
-
-  excused: todayAttendance.filter(
-    (item) => item.status === "excused"
-  ).length,
-
-  total: todayAttendance.length,
-};
-
-  const studentCount = await Enrollment.countDocuments({
-    school: teacher.school._id,
-    class: { $in: classIds },
-    status: "active",
-  });
-
-  const classesWithStudents = await Promise.all(
-    classes.map(async (classItem) => {
-      const students = await Enrollment.countDocuments({
-        school: teacher.school._id,
-        class: classItem._id,
-        status: "active",
-      });
-
-      return {
-        id: classItem._id,
-        name: classItem.name,
-        level: classItem.level,
-        arm: classItem.arm,
-        capacity: classItem.capacity,
-        students,
-        academicSession: classItem.academicSession,
-      };
+    const classes = await Class.find({
+      school: teacher.school._id,
+      classTeacher: teacher._id,
+      isActive: true,
     })
-  );
+      .populate("academicSession", "name startDate endDate")
+      .sort({ level: 1, name: 1, arm: 1 });
 
- return {
-  teacher,
+    const classIds = classes.map((item) => item._id);
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
 
-  stats: {
-    students: studentCount,
-    classes: classes.length,
-    subjects: subjects.length,
-    todayClasses: todayTimetable.length,
-  },
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
-  attendance: attendanceStats,
+    const todayAttendance = await Attendance.find({
+      school: teacher.school._id,
+      class: { $in: classIds },
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    });
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
 
-  subjects,
+    const today = days[new Date().getDay()];
 
-  todayTimetable,
+    const timetable = await Timetable.find({
+      school: teacher.school._id,
+      teacher: teacher._id,
+      isActive: true,
+    })
+      .populate("class", "name level arm")
+      .populate("subject", "name code category")
+      .populate("academicSession", "name startDate endDate")
+      .sort({ day: 1, startTime: 1 });
 
-  classes: classesWithStudents,
-};
-}
+    const todayTimetable = timetable.filter((item) => item.day === today);
+
+    const subjectIds = [
+      ...new Set(
+        timetable
+          .filter((item) => item.subject)
+          .map((item) => item.subject._id.toString()),
+      ),
+    ];
+
+    const subjects = await Subject.find({
+      _id: { $in: subjectIds },
+      school: teacher.school._id,
+      isActive: true,
+    }).sort({ name: 1 });
+
+    const attendanceStats = {
+      present: todayAttendance.filter((item) => item.status === "present")
+        .length,
+
+      absent: todayAttendance.filter((item) => item.status === "absent").length,
+
+      late: todayAttendance.filter((item) => item.status === "late").length,
+
+      excused: todayAttendance.filter((item) => item.status === "excused")
+        .length,
+
+      total: todayAttendance.length,
+    };
+
+    const studentCount = await Enrollment.countDocuments({
+      school: teacher.school._id,
+      class: { $in: classIds },
+      status: "active",
+    });
+
+    const classesWithStudents = await Promise.all(
+      classes.map(async (classItem) => {
+        const students = await Enrollment.countDocuments({
+          school: teacher.school._id,
+          class: classItem._id,
+          status: "active",
+        });
+
+        return {
+          id: classItem._id,
+          name: classItem.name,
+          level: classItem.level,
+          arm: classItem.arm,
+          capacity: classItem.capacity,
+          students,
+          academicSession: classItem.academicSession,
+        };
+      }),
+    );
+
+    return {
+      teacher,
+
+      stats: {
+        students: studentCount,
+        classes: classes.length,
+        subjects: subjects.length,
+        todayClasses: todayTimetable.length,
+      },
+
+      attendance: attendanceStats,
+
+      subjects,
+
+      todayTimetable,
+
+      classes: classesWithStudents,
+    };
+  }
   // Get teachers belonging to a school
   async getTeachersBySchool(schoolId) {
     const school = await School.findById(schoolId);
