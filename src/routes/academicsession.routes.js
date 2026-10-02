@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const academicSessionController = require(
-  "../controllers/academicSession.controller"
+  "../controllers/academicsession.controller"
 );
 
 const {
