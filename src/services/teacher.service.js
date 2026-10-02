@@ -1,6 +1,11 @@
 const Teacher = require("../models/Teacher.model");
 const School = require("../models/School.model");
 const AppError = require("../utils/AppError");
+const Class = require("../models/Class.model");
+const Enrollment = require("../models/Enrollement.model");
+const Attendance = require("../models/Attendance.model");
+const Timetable = require("../models/Timetable.model");
+const Subject = require("../models/Subject.model");
 
 class TeacherService {
   // Create teacher
@@ -200,6 +205,143 @@ class TeacherService {
     return teacher;
   }
 
+  // Get teacher dashboard
+async getTeacherDashboard(teacherId) {
+  const teacher = await Teacher.findById(teacherId)
+    .populate("school", "name schoolType email phone");
+
+  if (!teacher) {
+    throw new AppError("Teacher not found", 404);
+  }
+
+  const classes = await Class.find({
+    school: teacher.school._id,
+    classTeacher: teacher._id,
+    isActive: true,
+  })
+    .populate("academicSession", "name startDate endDate")
+    .sort({ level: 1, name: 1, arm: 1 });
+
+  const classIds = classes.map((item) => item._id);
+  const startOfDay = new Date();
+startOfDay.setHours(0, 0, 0, 0);
+
+const endOfDay = new Date();
+endOfDay.setHours(23, 59, 59, 999);
+
+const todayAttendance = await Attendance.find({
+  school: teacher.school._id,
+  class: { $in: classIds },
+  date: {
+    $gte: startOfDay,
+    $lte: endOfDay,
+  },
+});
+const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const today = days[new Date().getDay()];
+
+const timetable = await Timetable.find({
+  school: teacher.school._id,
+  teacher: teacher._id,
+  isActive: true,
+})
+  .populate("class", "name level arm")
+  .populate("subject", "name code category")
+  .populate("academicSession", "name startDate endDate")
+  .sort({ day: 1, startTime: 1 });
+
+const todayTimetable = timetable.filter(
+  (item) => item.day === today
+);
+
+const subjectIds = [
+  ...new Set(
+    timetable
+      .filter((item) => item.subject)
+      .map((item) => item.subject._id.toString())
+  ),
+];
+
+const subjects = await Subject.find({
+  _id: { $in: subjectIds },
+  school: teacher.school._id,
+  isActive: true,
+}).sort({ name: 1 });
+
+const attendanceStats = {
+  present: todayAttendance.filter(
+    (item) => item.status === "present"
+  ).length,
+
+  absent: todayAttendance.filter(
+    (item) => item.status === "absent"
+  ).length,
+
+  late: todayAttendance.filter(
+    (item) => item.status === "late"
+  ).length,
+
+  excused: todayAttendance.filter(
+    (item) => item.status === "excused"
+  ).length,
+
+  total: todayAttendance.length,
+};
+
+  const studentCount = await Enrollment.countDocuments({
+    school: teacher.school._id,
+    class: { $in: classIds },
+    status: "active",
+  });
+
+  const classesWithStudents = await Promise.all(
+    classes.map(async (classItem) => {
+      const students = await Enrollment.countDocuments({
+        school: teacher.school._id,
+        class: classItem._id,
+        status: "active",
+      });
+
+      return {
+        id: classItem._id,
+        name: classItem.name,
+        level: classItem.level,
+        arm: classItem.arm,
+        capacity: classItem.capacity,
+        students,
+        academicSession: classItem.academicSession,
+      };
+    })
+  );
+
+ return {
+  teacher,
+
+  stats: {
+    students: studentCount,
+    classes: classes.length,
+    subjects: subjects.length,
+    todayClasses: todayTimetable.length,
+  },
+
+  attendance: attendanceStats,
+
+  subjects,
+
+  todayTimetable,
+
+  classes: classesWithStudents,
+};
+}
   // Get teachers belonging to a school
   async getTeachersBySchool(schoolId) {
     const school = await School.findById(schoolId);

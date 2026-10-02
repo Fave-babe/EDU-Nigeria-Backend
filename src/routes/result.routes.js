@@ -34,7 +34,8 @@ router.get(
     ROLES.SUPER_ADMIN,
     ROLES.TEACHER,
     ROLES.STAFF,
-    ROLES.PARENT
+    ROLES.PARENT,
+    ROLES.STUDENT
   ),
   resultController.getStudentResults
 );

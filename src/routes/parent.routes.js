@@ -74,7 +74,8 @@ router.post(
   RestrictTo(
     ROLES.ADMIN,
     ROLES.SUPER_ADMIN,
-    ROLES.STAFF
+    ROLES.STAFF,
+    ROLES.PARENT
   ),
   parentController.addChild
 );

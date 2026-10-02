@@ -1,4 +1,4 @@
-const enrollmentService = require("../services/enrollment.service");
+const enrollmentService = require("../services/enrollement.service");
 const api = require("../utils/apiResponse");
 
 // Create enrollment

@@ -34,7 +34,9 @@ class StudentService {
   }
 
   // Get a student by ID
-  async findById(studentId) {
+async findById(studentId) {
+  const Enrollment = require("../models/Enrollement.model");
+
   const student = await Student.findById(studentId)
     .populate("school", "name schoolType email phone");
 
@@ -42,7 +44,17 @@ class StudentService {
     throw new AppError("Student not found", 404);
   }
 
-  return student;
+  const enrollment = await Enrollment.findOne({
+    student: studentId,
+    status: "active",
+  })
+    .populate("class", "name level arm capacity")
+    .populate("academicSession", "name startDate endDate");
+
+  return {
+    ...student.toObject(),
+    enrollment: enrollment || null,
+  };
 }
   // Get all students
   async findAll({ school, status, page = 1, limit = 20 }) {
@@ -120,6 +132,45 @@ class StudentService {
 
     return student;
   }
+
+  // Get students assigned to a teacher
+async getStudentsByTeacher(teacherId) {
+  const Class = require("../models/Class.model");
+  const Enrollment = require("../models/Enrollement.model");
+
+  // Find classes where this teacher is the class teacher
+  const classes = await Class.find({
+    classTeacher: teacherId,
+    isActive: true,
+  }).select("_id name level arm academicSession");
+
+  if (classes.length === 0) {
+    return [];
+  }
+
+  const classIds = classes.map((classItem) => classItem._id);
+
+  // Find active students enrolled in those classes
+  const enrollments = await Enrollment.find({
+    class: { $in: classIds },
+    status: "active",
+  })
+    .populate(
+      "student",
+      "firstName lastName email registrationNumber gender phone"
+    )
+    .populate(
+      "class",
+      "name level arm"
+    )
+    .populate(
+      "academicSession",
+      "name startDate endDate"
+    )
+    .sort({ createdAt: -1 });
+
+  return enrollments;
+}
 
   // Delete a student
   async deleteStudent(studentId) {

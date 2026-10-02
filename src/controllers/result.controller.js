@@ -4,16 +4,21 @@ const api = require("../utils/apiResponse");
 // Create result
 exports.createResult = async (req, res, next) => {
   try {
+    const roleMap = {
+      admin: "Admin",
+      super_admin: "SuperAdmin",
+      teacher: "Teacher",
+    };
+
+    const recordedByModel = roleMap[req.user.role];
+
     const result = await resultService.createResult({
       ...req.body,
       recordedBy: req.user._id,
+      recordedByModel,
     });
 
-    api.created(
-      res,
-      { result },
-      "Result created successfully"
-    );
+    api.created(res, { result }, "Result created successfully");
   } catch (err) {
     next(err);
   }

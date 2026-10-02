@@ -1,3 +1,4 @@
+const { ROLES } = require("../config/constant");
 const parentService = require("../services/parent.service");
 const api = require("../utils/apiResponse");
 
@@ -87,8 +88,13 @@ exports.updateParent = async (req, res, next) => {
 
 exports.addChild = async (req, res, next) => {
   try {
+    const parentId =
+      req.user.role === ROLES.PARENT
+        ? req.user._id
+        : req.params.id;
+
     const parent = await parentService.addChild(
-      req.params.id,
+      parentId,
       req.body.studentId
     );
 

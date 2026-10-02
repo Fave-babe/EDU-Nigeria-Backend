@@ -4,11 +4,28 @@ const api = require("../utils/apiResponse");
 // Create announcement
 exports.createAnnouncement = async (req, res, next) => {
   try {
+    const roleMap = {
+      admin: "Admin",
+      super_admin: "Admin",
+      teacher: "Teacher",
+      staff: "Staff",
+      bursar: "Bursar",
+      counsellor: "Counsellor",
+    };
+
+    const createdByModel = roleMap[req.user.role];
+
+    if (!createdByModel) {
+      return next(
+        new AppError("Invalid user role for announcement", 400)
+      );
+    }
+
     const announcement =
       await announcementService.createAnnouncement({
         ...req.body,
         createdBy: req.user._id,
-        createdByModel: req.user.role,
+        createdByModel,
       });
 
     api.created(

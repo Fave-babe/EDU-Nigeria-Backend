@@ -70,9 +70,14 @@ const resultSchema = new mongoose.Schema(
     },
 
     recordedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
-    },
+  type: mongoose.Schema.Types.ObjectId,
+  required: false,
+},
+recordedByModel: {
+  type: String,
+  enum: ["Admin", "Teacher", "SuperAdmin"],
+  required: false,
+},
 
     status: {
       type: String,

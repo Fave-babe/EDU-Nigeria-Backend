@@ -39,17 +39,26 @@ router.get(
     ROLES.ADMIN,
     ROLES.SUPER_ADMIN,
     ROLES.STAFF,
-    ROLES.TEACHER
+    ROLES.TEACHER,
+    ROLES.BURSAR,
+     ROLES.PARENT
   ),
   studentController.getStudentsBySchool
 );
-
 // Get currently logged-in student
 router.get(
   "/me",
   protect,
   RestrictTo(ROLES.STUDENT),
   studentController.getMe
+);
+
+// Get students assigned to the logged-in teacher
+router.get(
+  "/teacher",
+  protect,
+  RestrictTo(ROLES.TEACHER),
+  studentController.getStudentsByTeacher
 );
 
 // Get one student

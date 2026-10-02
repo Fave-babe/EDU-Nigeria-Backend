@@ -39,6 +39,24 @@ exports.getTeacher = async (req, res, next) => {
   }
 };
 
+// Get teacher dashboard
+exports.getTeacherDashboard = async (req, res, next) => {
+  try {
+    const dashboard =
+      await teacherService.getTeacherDashboard(
+        req.user._id
+      );
+
+    api.success(
+      res,
+      dashboard,
+      "Teacher dashboard retrieved successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Get all teachers
 exports.getTeachers = async (req, res, next) => {
   try {

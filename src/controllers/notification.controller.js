@@ -50,18 +50,22 @@ exports.getMyNotifications = async (
       type,
     } = req.query;
 
-    const notifications =
-      await notificationService.getUserNotifications(
-        req.user._id,
-        req.user.role,
-        {
-          isRead:
-            isRead !== undefined
-              ? isRead === "true"
-              : undefined,
-          type,
-        }
-      );
+   const recipientModel =
+  req.user.role.charAt(0).toUpperCase() +
+  req.user.role.slice(1);
+
+const notifications =
+  await notificationService.getUserNotifications(
+    req.user._id,
+    recipientModel,
+    {
+      isRead:
+        isRead !== undefined
+          ? isRead === "true"
+          : undefined,
+      type,
+    }
+  );
 
     api.success(
       res,

@@ -453,42 +453,54 @@ class AdminService {
     );
 
     // -----------------------------------------------------
-    // TEACHERS
-    // -----------------------------------------------------
+// TEACHERS
+// -----------------------------------------------------
 
-    const teacherStats =
-      await Teacher.aggregate([
-        {
-          $match: {
-            school: schoolId,
-          },
+const teachersForSchool = await Teacher.find({
+  school: schoolId,
+}).select(
+  "_id firstName lastName email school isActive"
+);
+
+console.log(
+  "TEACHERS FOR ADMIN SCHOOL:",
+  teachersForSchool
+);
+
+console.log(
+  "ADMIN SCHOOL ID:",
+  schoolId
+);
+
+const teacherStats =
+  await Teacher.aggregate([
+    {
+      $match: {
+        school: schoolId,
+      },
+    },
+    {
+      $group: {
+        _id: "$isActive",
+        count: {
+          $sum: 1,
         },
-        {
-          $group: {
-            _id: "$isActive",
-            count: {
-              $sum: 1,
-            },
-          },
-        },
-      ]);
+      },
+    },
+  ]);
 
-    let activeTeachers = 0;
-    let inactiveTeachers = 0;
+  let activeTeachers = 0;
+let inactiveTeachers = 0;
 
-    teacherStats.forEach((item) => {
-      if (item._id === true) {
-        activeTeachers = item.count;
-      }
+teacherStats.forEach((item) => {
+  if (item._id === true) {
+    activeTeachers = item.count;
+  }
 
-      if (item._id === false) {
-        inactiveTeachers = item.count;
-      }
-    });
-
-    console.log(
-      "DASHBOARD CHECKPOINT 5: teacher stats completed"
-    );
+  if (item._id === false) {
+    inactiveTeachers = item.count;
+  }
+});
 
     // -----------------------------------------------------
     // STAFF

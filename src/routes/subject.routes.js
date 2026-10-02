@@ -27,11 +27,12 @@ router.post(
 // Get all subjects for a school
 router.get(
   "/school/:schoolId",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN,
-    ROLES.TEACHER,
-    ROLES.STAFF
+ RestrictTo(
+  ROLES.ADMIN,
+  ROLES.SUPER_ADMIN,
+  ROLES.TEACHER,
+  ROLES.STAFF,
+  ROLES.STUDENT
   ),
   subjectController.getSchoolSubjects
 );

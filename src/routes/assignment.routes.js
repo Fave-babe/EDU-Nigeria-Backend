@@ -1,92 +1,47 @@
 const router = require("express").Router();
 
-const classSubjectController = require(
-  "../controllers/classSubject.controller"
-);
+const assignmentController = require("../controllers/assignment.controller");
 
-const {
-  protect,
-  RestrictTo,
-} = require("../middleware/auth.middlware");
+const { protect, RestrictTo } = require("../middleware/auth.middlware");
 
 const { ROLES } = require("../config/constant");
 
-// All routes require authentication
+// All assignment routes require authentication
 router.use(protect);
 
-// Create class-subject assignment
+// Create assignment
 router.post(
   "/",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN
-  ),
-  classSubjectController.createAssignment
-);
-
-// Get all subjects assigned to a class
-router.get(
-  "/class/:classId",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN,
-    ROLES.TEACHER,
-    ROLES.STAFF
-  ),
-  classSubjectController.getClassSubjects
-);
-
-// Get all assignments for a teacher
-router.get(
-  "/teacher/:teacherId",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN,
-    ROLES.TEACHER
-  ),
-  classSubjectController.getTeacherSubjects
+  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHER),
+  assignmentController.createAssignment,
 );
 
 // Get one assignment
 router.get(
   "/:id",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN,
-    ROLES.TEACHER,
-    ROLES.STAFF
-  ),
-  classSubjectController.getAssignment
+  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHER, ROLES.STUDENT),
+  assignmentController.getAssignment,
+);
+
+// Get all assignments for a school
+router.get(
+  "/school/:schoolId",
+  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHER, ROLES.STUDENT),
+  assignmentController.getSchoolAssignments,
 );
 
 // Update assignment
 router.put(
   "/:id",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN
-  ),
-  classSubjectController.updateAssignment
-);
-
-// Activate / deactivate assignment
-router.patch(
-  "/:id/status",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN
-  ),
-  classSubjectController.toggleStatus
+  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHER),
+  assignmentController.updateAssignment,
 );
 
 // Delete assignment
 router.delete(
   "/:id",
-  RestrictTo(
-    ROLES.ADMIN,
-    ROLES.SUPER_ADMIN
-  ),
-  classSubjectController.deleteAssignment
+  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.TEACHER),
+  assignmentController.deleteAssignment,
 );
 
 module.exports = router;

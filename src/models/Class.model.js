@@ -68,4 +68,6 @@ classSchema.index({
   classTeacher: 1,
 });
 
-module.exports = mongoose.model("Class", classSchema);
+module.exports =
+  mongoose.models.Class ||
+  mongoose.model("Class", classSchema);

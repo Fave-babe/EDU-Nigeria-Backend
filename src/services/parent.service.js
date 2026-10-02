@@ -103,40 +103,56 @@ class ParentService {
   }
 
   // Add a student to a parent
-  async addChild(parentId, studentId) {
-    const parent = await Parent.findById(parentId);
+ async addChild(parentId, studentId) {
+  const parent = await Parent.findById(parentId);
 
-    if (!parent) {
-      throw new AppError("Parent not found", 404);
-    }
-
-    const student = await Student.findById(studentId);
-
-    if (!student) {
-      throw new AppError("Student not found", 404);
-    }
-
-    // Prevent duplicate child
-    if (parent.children.includes(studentId)) {
-      throw new AppError(
-        "This student is already linked to the parent",
-        400
-      );
-    }
-
-    parent.children.push(studentId);
-
-    await parent.save();
-
-    return parent.populate({
-      path: "children",
-      select: "-password",
-      populate: {
-        path: "school",
-        select: "name schoolType",
-      },
-    });
+  if (!parent) {
+    throw new AppError("Parent not found", 404);
   }
+
+  const student = await Student.findById(studentId);
+
+  if (!student) {
+    throw new AppError("Student not found", 404);
+  }
+
+  // Parent can only link students from the same school
+  if (
+    parent.school &&
+    student.school &&
+    parent.school.toString() !== student.school.toString()
+  ) {
+    throw new AppError(
+      "You can only link a student from your school",
+      403
+    );
+  }
+
+  // Prevent duplicate links
+  const alreadyLinked = parent.children.some(
+    (childId) => childId.toString() === studentId.toString()
+  );
+
+  if (alreadyLinked) {
+    throw new AppError(
+      "This student is already linked to the parent",
+      400
+    );
+  }
+
+  parent.children.push(studentId);
+
+  await parent.save();
+
+  return parent.populate({
+    path: "children",
+    select: "-password",
+    populate: {
+      path: "school",
+      select: "name schoolType",
+    },
+  });
+}
 
   // Remove a student from a parent
   async removeChild(parentId, studentId) {

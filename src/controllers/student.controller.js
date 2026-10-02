@@ -120,14 +120,53 @@ exports.deleteStudent = async (req, res, next) => {
 
 exports.getStudentsBySchool = async (req, res, next) => {
   try {
-    const students = await studentService.getStudentsBySchool(
-      req.params.schoolId
-    );
+    const requestedSchoolId = req.params.schoolId;
+
+    // Parents can only access students from their own school
+    if (req.user.role === ROLES.PARENT) {
+      const parentSchoolId =
+        req.user.school?._id || req.user.school;
+
+      if (!parentSchoolId) {
+        return next(
+          new AppError(
+            "Your parent account is not assigned to a school",
+            400
+          )
+        );
+      }
+
+      if (parentSchoolId.toString() !== requestedSchoolId.toString()) {
+        return next(
+          new AppError(
+            "You can only access students from your school",
+            403
+          )
+        );
+      }
+    }
+
+    const students =
+      await studentService.getStudentsBySchool(requestedSchoolId);
 
     api.success(
       res,
       { students },
       "School students retrieved successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+exports.getStudentsByTeacher = async (req, res, next) => {
+  try {
+    const students =
+      await studentService.getStudentsByTeacher(req.user._id);
+
+    api.success(
+      res,
+      { students },
+      "Teacher students retrieved successfully"
     );
   } catch (err) {
     next(err);

@@ -139,13 +139,13 @@ const user = await userQuery;
 };
 
 
+
 // ==========================================
 // RESTRICT TO ROLES
 // ==========================================
 
 const RestrictTo = (...roles) => {
   return (req, res, next) => {
-
     if (!req.user) {
       return next(
         new AppError(
@@ -154,8 +154,26 @@ const RestrictTo = (...roles) => {
         )
       );
     }
+const userRole = req.user.role?.toLowerCase?.();
+const staffRole = req.user.staffRole?.toLowerCase?.();
 
-    if (!roles.includes(req.user.role)) {
+const effectiveRole =
+  userRole === "staff" && staffRole
+    ? staffRole
+    : userRole;
+
+const allowedRoles = roles.map((role) =>
+  role?.toLowerCase?.()
+);
+
+console.log("ROLE CHECK:", {
+  userRole,
+  staffRole,
+  effectiveRole,
+  allowedRoles,
+});
+
+if (!allowedRoles.includes(effectiveRole)) {
       return next(
         new AppError(
           "You are not permitted to perform this operation.",
@@ -167,6 +185,8 @@ const RestrictTo = (...roles) => {
     next();
   };
 };
+
+
 
 
 // ==========================================

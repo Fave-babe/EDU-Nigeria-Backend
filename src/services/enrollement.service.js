@@ -1,4 +1,4 @@
-const Enrollment = require("../models/Enrollment.model");
+const Enrollment = require("../models/Enrollement.model");
 const School = require("../models/School.model");
 const Student = require("../models/Student.model");
 const AcademicSession = require("../models/AcademicSession.model");
@@ -347,6 +347,7 @@ class EnrollmentService {
   }
 
   // Get current class and subjects for a student
+// Get current class and subjects for a student
 async getStudentAcademicInfo(studentId) {
   const enrollment = await Enrollment.findOne({
     student: studentId,
@@ -386,6 +387,24 @@ async getStudentAcademicInfo(studentId) {
     )
     .sort({ createdAt: 1 });
 
+  console.log("========== STUDENT ACADEMIC DEBUG ==========");
+  console.log("STUDENT ID:", studentId);
+  console.log("CLASS ID:", enrollment.class._id);
+  console.log("CLASS:", enrollment.class);
+  console.log(
+    "ACADEMIC SESSION ID:",
+    enrollment.academicSession._id
+  );
+  console.log(
+    "ACADEMIC SESSION:",
+    enrollment.academicSession
+  );
+  console.log("Subjects Found:", classSubjects.length);
+  console.log(
+    "Subjects:",
+    JSON.stringify(classSubjects, null, 2)
+  );
+  console.log("======================================");
   return {
     enrollment,
     class: enrollment.class,

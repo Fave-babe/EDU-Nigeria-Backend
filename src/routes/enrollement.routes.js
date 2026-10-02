@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const enrollmentController = require(
-  "../controllers/enrollment.controller"
+  "../controllers/enrollement.controller"
 );
 
 const {

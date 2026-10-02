@@ -41,11 +41,19 @@ router.get(
   RestrictTo(
     ROLES.ADMIN,
     ROLES.SUPER_ADMIN,
-    ROLES.STAFF,
-    ROLES.TEACHER
+    ROLES.TEACHER,
+    ROLES.STAFF
   ),
   teacherController.getTeachersBySchool
 );
+
+router.get(
+  "/dashboard",
+  protect,
+  RestrictTo("admin", "super_admin", "staff", "teacher"),
+  teacherController.getTeacherDashboard
+);
+
 
 // Get one teacher
 router.get(

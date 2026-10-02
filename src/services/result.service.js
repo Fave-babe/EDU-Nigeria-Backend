@@ -40,6 +40,7 @@ class ResultService {
       caScore = 0,
       examScore = 0,
       recordedBy,
+        recordedByModel,
     } = data;
 
     // Validate scores
@@ -115,17 +116,13 @@ class ResultService {
     }
 
     // Check teacher
-    if (recordedBy) {
-      const teacher =
-        await Teacher.findById(recordedBy);
+   if (recordedBy && recordedByModel === "Teacher") {
+  const teacher = await Teacher.findById(recordedBy);
 
-      if (!teacher) {
-        throw new AppError(
-          "Teacher not found",
-          404
-        );
-      }
-    }
+  if (!teacher) {
+    throw new AppError("Teacher not found", 404);
+  }
+}
 
     // Prevent duplicate result
     const existingResult =
@@ -165,6 +162,7 @@ class ResultService {
       grade,
       remark,
       recordedBy,
+      recordedByModel,
     });
 
     return result;
@@ -221,10 +219,11 @@ class ResultService {
       );
     }
 
-    const filter = {
-      student: studentId,
-    };
-
+    
+      const filter = {
+  student: studentId,
+  status: "published",
+};
     if (academicSession) {
       filter.academicSession =
         academicSession;

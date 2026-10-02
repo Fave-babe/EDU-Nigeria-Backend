@@ -8,13 +8,59 @@ const Class = require("../models/Class.model");
 const AcademicSession = require("../models/AcademicSession.model");
 const Enrollment = require("../models/Enrollement.model");
 const Attendance = require("../models/Attendance.model");
-
+const { ROLES } = require("../config/constant");
 const createSchool = async (data, userId) => {
+  const {
+    adminFullName,
+    adminEmail,
+    adminPassword,
+    ...schoolData
+  } = data;
+
+  // ---------------------------------------------
+  // CREATE SCHOOL
+  // ---------------------------------------------
+
   const school = await School.create({
-    ...data,
+    ...schoolData,
     createdBy: userId,
     lastModifiedBy: userId,
   });
+
+  // ---------------------------------------------
+  // CREATE ADMIN FOR THE SCHOOL
+  // ---------------------------------------------
+
+  if (adminFullName && adminEmail && adminPassword) {
+    const normalizedEmail = adminEmail
+      .toLowerCase()
+      .trim();
+
+    const existingAdmin = await Admin.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingAdmin) {
+      // Remove the school we just created because
+      // the Admin could not be created.
+      await School.findByIdAndDelete(school._id);
+
+      const error = new Error(
+        "An admin with this email already exists"
+      );
+
+      error.statusCode = 409;
+      throw error;
+    }
+
+    await Admin.create({
+      fullName: adminFullName.trim(),
+      email: normalizedEmail,
+      password: adminPassword,
+      school: school._id,
+      role: ROLES.ADMIN,
+    });
+  }
 
   return school;
 };
