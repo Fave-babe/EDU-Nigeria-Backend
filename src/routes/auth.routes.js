@@ -13,6 +13,8 @@ router.post("/register", ctrl.register);
 
 router.post("/login", ctrl.login);
 
+router.patch("/change-password", protect, ctrl.changePassword);
+
 router.get("/me", protect, ctrl.getMe);
 
 module.exports = router;

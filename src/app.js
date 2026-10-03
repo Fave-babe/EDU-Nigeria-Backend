@@ -33,9 +33,21 @@ const feesRoutes = require("./routes/fees.routes");
 const staffRoutes = require("./routes/staff.routes");
 const superAdminRoutes = require("./routes/superadmin.routes");
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://edu-nigeria.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "https://edu-nigeria.vercel.app",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
   }),
 );
 
