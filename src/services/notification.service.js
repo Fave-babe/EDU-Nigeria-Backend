@@ -3,7 +3,10 @@ const School = require("../models/School.model");
 const AppError = require("../utils/AppError");
 
 class NotificationService {
-  // Create a notification
+  // =========================================================
+  // CREATE NOTIFICATION
+  // =========================================================
+
   async createNotification(data) {
     const {
       school,
@@ -25,6 +28,10 @@ class NotificationService {
       throw new AppError("Recipient is required", 400);
     }
 
+    if (!recipientModel) {
+      throw new AppError("Recipient model is required", 400);
+    }
+
     if (!title || !message) {
       throw new AppError(
         "Notification title and message are required",
@@ -32,38 +39,39 @@ class NotificationService {
       );
     }
 
-    const notification =
-      await Notification.create({
-        school,
-        recipient,
-        recipientModel,
-        title,
-        message,
-        type,
-        createdBy,
-      });
+    const notification = await Notification.create({
+      school,
+      recipient,
+      recipientModel,
+      title,
+      message,
+      type,
+      createdBy,
+    });
 
     return notification;
   }
 
-  // Get one notification
+  // =========================================================
+  // GET ONE NOTIFICATION
+  // =========================================================
+
   async findById(notificationId) {
-    const notification =
-      await Notification.findById(
-        notificationId
-      ).populate("school", "name");
+    const notification = await Notification.findById(
+      notificationId
+    ).populate("school", "name");
 
     if (!notification) {
-      throw new AppError(
-        "Notification not found",
-        404
-      );
+      throw new AppError("Notification not found", 404);
     }
 
     return notification;
   }
 
-  // Get notifications for a user
+  // =========================================================
+  // GET USER NOTIFICATIONS
+  // =========================================================
+
   async getUserNotifications(
     recipient,
     recipientModel,
@@ -89,7 +97,10 @@ class NotificationService {
       });
   }
 
-  // Get unread notifications
+  // =========================================================
+  // GET UNREAD NOTIFICATIONS
+  // =========================================================
+
   async getUnreadNotifications(
     recipient,
     recipientModel
@@ -105,31 +116,35 @@ class NotificationService {
       });
   }
 
-  // Get unread count
+  // =========================================================
+  // GET UNREAD COUNT
+  // =========================================================
+
   async getUnreadCount(
     recipient,
     recipientModel
   ) {
-    const count =
-      await Notification.countDocuments({
-        recipient,
-        recipientModel,
-        isRead: false,
-      });
-
-    return count;
+    return Notification.countDocuments({
+      recipient,
+      recipientModel,
+      isRead: false,
+    });
   }
 
-  // Mark one notification as read
+  // =========================================================
+  // MARK ONE AS READ
+  // =========================================================
+
   async markAsRead(
     notificationId,
-    recipient
+    recipient,
+    recipientModel
   ) {
-    const notification =
-      await Notification.findOne({
-        _id: notificationId,
-        recipient,
-      });
+    const notification = await Notification.findOne({
+      _id: notificationId,
+      recipient,
+      recipientModel,
+    });
 
     if (!notification) {
       throw new AppError(
@@ -146,36 +161,41 @@ class NotificationService {
     return notification;
   }
 
-  // Mark all notifications as read
+  // =========================================================
+  // MARK ALL AS READ
+  // =========================================================
+
   async markAllAsRead(
     recipient,
     recipientModel
   ) {
-    const result =
-      await Notification.updateMany(
-        {
-          recipient,
-          recipientModel,
-          isRead: false,
-        },
-        {
-          isRead: true,
-          readAt: new Date(),
-        }
-      );
-
-    return result;
+    return Notification.updateMany(
+      {
+        recipient,
+        recipientModel,
+        isRead: false,
+      },
+      {
+        isRead: true,
+        readAt: new Date(),
+      }
+    );
   }
 
-  // Delete notification
+  // =========================================================
+  // DELETE ONE NOTIFICATION
+  // =========================================================
+
   async deleteNotification(
     notificationId,
-    recipient
+    recipient,
+    recipientModel
   ) {
     const notification =
       await Notification.findOneAndDelete({
         _id: notificationId,
         recipient,
+        recipientModel,
       });
 
     if (!notification) {
@@ -188,18 +208,18 @@ class NotificationService {
     return notification;
   }
 
-  // Delete all notifications for a user
+  // =========================================================
+  // DELETE ALL NOTIFICATIONS
+  // =========================================================
+
   async deleteAllNotifications(
     recipient,
     recipientModel
   ) {
-    const result =
-      await Notification.deleteMany({
-        recipient,
-        recipientModel,
-      });
-
-    return result;
+    return Notification.deleteMany({
+      recipient,
+      recipientModel,
+    });
   }
 }
 
