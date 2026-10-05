@@ -72,6 +72,8 @@ exports.getStudents = async (req, res, next) => {
       limit: Number(limit),
     });
 
+    // console.log("Students retrieved:", result);
+
     api.paginated(res, result);
   } catch (err) {
     next(err);

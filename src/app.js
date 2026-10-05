@@ -36,6 +36,7 @@ const superAdminRoutes = require("./routes/superadmin.routes");
 const allowedOrigins = [
   "http://localhost:5173",
   "https://edu-nigeria.vercel.app",
+  "https://edu-nigeria-ulgk.vercel.app"
 ];
 
 app.use(
