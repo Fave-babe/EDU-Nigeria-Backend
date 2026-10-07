@@ -59,9 +59,17 @@ const schoolSchema = new mongoose.Schema(
       default: null,
     },
 
+    // School application status
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+
+    // Only approved schools should be active
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
 
     createdBy: {
@@ -74,12 +82,15 @@ const schoolSchema = new mongoose.Schema(
       ref: "user",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 schoolSchema.index({ name: 1 });
 schoolSchema.index({ email: 1 });
 schoolSchema.index({ schoolType: 1 });
+schoolSchema.index({ status: 1 });
 schoolSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model("School", schoolSchema);

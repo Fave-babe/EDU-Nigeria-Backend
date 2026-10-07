@@ -2,22 +2,29 @@ const schoolService = require("../services/school.service");
 const api = require("../utils/apiResponse");
 const School = require("../models/School.model");
 
-exports.createSchool = async (req, res, next) => {
+// ======================================================
+// PUBLIC SCHOOL REGISTRATION
+// ======================================================
+
+exports.registerSchoolApplication = async (req, res, next) => {
   try {
-    const school = await schoolService.createSchool(
-      req.body,
-      req.user._id
+    const school = await schoolService.registerSchoolApplication(
+      req.body
     );
 
     api.created(
       res,
       { school },
-      "School created successfully"
+      "School application submitted successfully"
     );
   } catch (err) {
     next(err);
   }
 };
+
+// ======================================================
+// GET SCHOOL
+// ======================================================
 
 exports.getSchool = async (req, res, next) => {
   try {
@@ -35,11 +42,9 @@ exports.getSchool = async (req, res, next) => {
   }
 };
 
-/*
-|--------------------------------------------------------------------------
-| COMPLETE SCHOOL DETAILS
-|--------------------------------------------------------------------------
-*/
+// ======================================================
+// GET SCHOOL DETAILS
+// ======================================================
 
 exports.getSchoolDetails = async (req, res, next) => {
   try {
@@ -56,6 +61,10 @@ exports.getSchoolDetails = async (req, res, next) => {
     next(err);
   }
 };
+
+// ======================================================
+// UPDATE SCHOOL
+// ======================================================
 
 exports.updateSchool = async (req, res, next) => {
   try {
@@ -75,6 +84,11 @@ exports.updateSchool = async (req, res, next) => {
   }
 };
 
+// ======================================================
+// GET ALL SCHOOLS
+// SUPER ADMIN ONLY
+// ======================================================
+
 exports.getAllSchools = async (req, res, next) => {
   try {
     const schools = await schoolService.getAllSchools();
@@ -89,12 +103,86 @@ exports.getAllSchools = async (req, res, next) => {
   }
 };
 
-exports.toggleSchoolStatus = async (req, res, next) => {
+// ======================================================
+// GET PENDING SCHOOL APPLICATIONS
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.getPendingSchoolApplications = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const school = await schoolService.toggleSchoolStatus(
+    const schools =
+      await schoolService.getPendingSchoolApplications();
+
+    api.success(
+      res,
+      { schools },
+      "Pending school applications retrieved successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ======================================================
+// APPROVE SCHOOL
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.approveSchool = async (req, res, next) => {
+  try {
+    const school = await schoolService.approveSchool(
       req.params.id,
       req.user._id
     );
+
+    api.success(
+      res,
+      { school },
+      "School approved successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ======================================================
+// REJECT SCHOOL
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.rejectSchool = async (req, res, next) => {
+  try {
+    const school = await schoolService.rejectSchool(
+      req.params.id,
+      req.user._id
+    );
+
+    api.success(
+      res,
+      { school },
+      "School application rejected"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ======================================================
+// ACTIVATE / DEACTIVATE SCHOOL
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.toggleSchoolStatus = async (req, res, next) => {
+  try {
+    const school =
+      await schoolService.toggleSchoolStatus(
+        req.params.id,
+        req.user._id
+      );
 
     api.success(
       res,
@@ -106,15 +194,27 @@ exports.toggleSchoolStatus = async (req, res, next) => {
   }
 };
 
+// ======================================================
+// PUBLIC SCHOOL LIST
+// ======================================================
+
 exports.getPublicSchools = async (req, res, next) => {
   try {
     const schools = await School.find(
-      { isActive: true },
+      {
+        isActive: true,
+        $or: [
+          { status: "approved" },
+          { status: { $exists: false } },
+        ],
+      },
       {
         name: 1,
         schoolType: 1,
       }
-    ).sort({ name: 1 });
+    ).sort({
+      name: 1,
+    });
 
     api.success(
       res,

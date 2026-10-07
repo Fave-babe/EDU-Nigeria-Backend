@@ -1,4 +1,3 @@
-
 const Admin = require("../models/Admin.model");
 const Teacher = require("../models/Teacher.model");
 const Parent = require("../models/Parent.model");
@@ -58,7 +57,7 @@ const signToken = (id, role) =>
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRES_IN,
-    }
+    },
   );
 
 // =========================================================
@@ -67,23 +66,23 @@ const signToken = (id, role) =>
 
 exports.register = async (req, res, next) => {
   try {
-    const {
-      role,
-      email,
-      password,
-      school,
-      ...rest
-    } = req.body;
-
+    const { role, email, password, school, ...rest } = req.body;
     const normalizedRole = role?.toLowerCase().trim();
 
-    // Validate role
+    // Students cannot create their own accounts
+    if (normalizedRole === ROLES.STUDENT) {
+      return next(
+        new AppError(
+          "Students cannot register themselves. Please contact your school administrator.",
+          403,
+        ),
+      );
+    }
+
     const Model = MODELS_BY_ROLE[normalizedRole];
 
     if (!Model) {
-      return next(
-        new AppError("Invalid role", 400)
-      );
+      return next(new AppError("Invalid role", 400));
     }
 
     // Admin and Super Admin cannot register publicly
@@ -94,20 +93,15 @@ exports.register = async (req, res, next) => {
       return next(
         new AppError(
           "Admin and Super Admin accounts cannot be created through public registration",
-          403
-        )
+          403,
+        ),
       );
     }
 
     // Validate school for school-based roles
     if (SCHOOL_ROLES.includes(normalizedRole)) {
       if (!school) {
-        return next(
-          new AppError(
-            "School is required for registration",
-            400
-          )
-        );
+        return next(new AppError("School is required for registration", 400));
       }
 
       const schoolExists = await School.findOne({
@@ -116,36 +110,20 @@ exports.register = async (req, res, next) => {
       });
 
       if (!schoolExists) {
-        return next(
-          new AppError(
-            "School not found or is inactive",
-            400
-          )
-        );
+        return next(new AppError("School not found or is inactive", 400));
       }
     }
 
     // Normalize email
-    const normalizedEmail =
-      email?.toLowerCase().trim();
+    const normalizedEmail = email?.toLowerCase().trim();
 
     if (!normalizedEmail) {
-      return next(
-        new AppError(
-          "Email is required",
-          400
-        )
-      );
+      return next(new AppError("Email is required", 400));
     }
 
     // Password validation
     if (!password) {
-      return next(
-        new AppError(
-          "Password is required",
-          400
-        )
-      );
+      return next(new AppError("Password is required", 400));
     }
 
     // Check duplicate email
@@ -154,12 +132,7 @@ exports.register = async (req, res, next) => {
     });
 
     if (existing) {
-      return next(
-        new AppError(
-          "Email already in use",
-          409
-        )
-      );
+      return next(new AppError("Email already in use", 409));
     }
 
     // Build user data
@@ -179,10 +152,7 @@ exports.register = async (req, res, next) => {
     if (normalizedRole === ROLES.STAFF) {
       if (!userData.fullName) {
         return next(
-          new AppError(
-            "Full name is required for staff registration",
-            400
-          )
+          new AppError("Full name is required for staff registration", 400),
         );
       }
     }
@@ -191,16 +161,10 @@ exports.register = async (req, res, next) => {
     const user = await Model.create(userData);
 
     // Create token
-    const token = signToken(
-      user._id,
-      normalizedRole
-    );
+    const token = signToken(user._id, normalizedRole);
 
     // Populate school only for school-based roles
-    if (
-      SCHOOL_ROLES.includes(normalizedRole) &&
-      user.school
-    ) {
+    if (SCHOOL_ROLES.includes(normalizedRole) && user.school) {
       await user.populate("school");
     }
 
@@ -212,16 +176,11 @@ exports.register = async (req, res, next) => {
         user,
         role: normalizedRole,
       },
-      `${normalizedRole} account created`
+      `${normalizedRole} account created`,
     );
   } catch (err) {
     if (err?.code === 11000) {
-      return next(
-        new AppError(
-          "Email already in use",
-          409
-        )
-      );
+      return next(new AppError("Email already in use", 409));
     }
 
     next(err);
@@ -239,56 +198,39 @@ exports.login = async (req, res, next) => {
     console.log("=================================");
     console.log("LOGIN ATTEMPT");
     console.log("Email:", email);
-    console.log(
-      "Password provided:",
-      !!password
-    );
+    console.log("Password provided:", !!password);
 
     // Validation
     if (!email || !password) {
-      return next(
-        new AppError(
-          "Email and password are required",
-          400
-        )
-      );
+      return next(new AppError("Email and password are required", 400));
     }
 
-    const normalizedEmail =
-      email.toLowerCase().trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Search all user models
     const results = await Promise.all(
-      Object.entries(MODELS_BY_ROLE).map(
-        async ([roleName, Model]) => {
-          try {
-            const found =
-              await Model.findOne({
-                email: normalizedEmail,
-              }).select("+password");
+      Object.entries(MODELS_BY_ROLE).map(async ([roleName, Model]) => {
+        try {
+          const found = await Model.findOne({
+            email: normalizedEmail,
+          }).select("+password");
 
-            return {
-              roleName,
-              found,
-            };
-          } catch (err) {
-            console.error(
-              `Error checking ${roleName}:`,
-              err.message
-            );
+          return {
+            roleName,
+            found,
+          };
+        } catch (err) {
+          console.error(`Error checking ${roleName}:`, err.message);
 
-            return {
-              roleName,
-              found: null,
-            };
-          }
+          return {
+            roleName,
+            found: null,
+          };
         }
-      )
+      }),
     );
 
-    const match = results.find(
-      (result) => result.found
-    );
+    const match = results.find((result) => result.found);
 
     const user = match?.found || null;
     const role = match?.roleName || null;
@@ -298,77 +240,37 @@ exports.login = async (req, res, next) => {
 
     // User not found
     if (!user) {
-      console.log(
-        "NO USER FOUND WITH THIS EMAIL"
-      );
+      console.log("NO USER FOUND WITH THIS EMAIL");
 
-      return next(
-        new AppError(
-          "Invalid email or password",
-          401
-        )
-      );
+      return next(new AppError("Invalid email or password", 401));
     }
 
     // Password
     if (!user.password) {
-      console.log(
-        "PASSWORD WAS NOT LOADED FROM DATABASE"
-      );
+      console.log("PASSWORD WAS NOT LOADED FROM DATABASE");
 
-      return next(
-        new AppError(
-          "Invalid email or password",
-          401
-        )
-      );
+      return next(new AppError("Invalid email or password", 401));
     }
 
     // Password method
-    if (
-      typeof user.comparePassword !==
-      "function"
-    ) {
-      console.error(
-        "comparePassword METHOD DOES NOT EXIST"
-      );
+    if (typeof user.comparePassword !== "function") {
+      console.error("comparePassword METHOD DOES NOT EXIST");
 
-      return next(
-        new AppError(
-          "Authentication configuration error",
-          500
-        )
-      );
+      return next(new AppError("Authentication configuration error", 500));
     }
 
     // Check password
-    const passwordMatch =
-      await user.comparePassword(
-        password
-      );
+    const passwordMatch = await user.comparePassword(password);
 
-    console.log(
-      "Password matches:",
-      passwordMatch
-    );
+    console.log("Password matches:", passwordMatch);
 
     if (!passwordMatch) {
-      return next(
-        new AppError(
-          "Invalid email or password",
-          401
-        )
-      );
+      return next(new AppError("Invalid email or password", 401));
     }
 
     // Active account
     if (user.isActive === false) {
-      return next(
-        new AppError(
-          "Account deactivated. Contact support.",
-          401
-        )
-      );
+      return next(new AppError("Account deactivated. Contact support.", 401));
     }
 
     // Update last login
@@ -379,18 +281,12 @@ exports.login = async (req, res, next) => {
     });
 
     // Populate school only for school-based roles
-    if (
-      SCHOOL_ROLES.includes(role) &&
-      user.school
-    ) {
+    if (SCHOOL_ROLES.includes(role) && user.school) {
       await user.populate("school");
     }
 
     // Create token
-    const token = signToken(
-      user._id,
-      role
-    );
+    const token = signToken(user._id, role);
 
     // Remove password
     const userData = user.toJSON();
@@ -400,10 +296,7 @@ exports.login = async (req, res, next) => {
     // Success
     console.log("LOGIN SUCCESSFUL");
     console.log("Role:", role);
-    console.log(
-      "School:",
-      user.school?.name || "N/A"
-    );
+    console.log("School:", user.school?.name || "N/A");
     console.log("=================================");
 
     api.success(
@@ -415,13 +308,10 @@ exports.login = async (req, res, next) => {
           role,
         },
       },
-      "Login successful"
+      "Login successful",
     );
   } catch (err) {
-    console.error(
-      "LOGIN CONTROLLER ERROR:",
-      err
-    );
+    console.error("LOGIN CONTROLLER ERROR:", err);
 
     next(err);
   }
@@ -504,30 +394,18 @@ exports.changePassword = async (req, res) => {
 // GET CURRENT USER
 // =========================================================
 
-exports.getMe = async (
-  req,
-  res,
-  next
-) => {
+exports.getMe = async (req, res, next) => {
   try {
     const role = req.user.role;
 
-    const Model =
-      MODELS_BY_ROLE[role];
+    const Model = MODELS_BY_ROLE[role];
 
     if (!Model) {
-      return next(
-        new AppError(
-          "Invalid role",
-          400
-        )
-      );
+      return next(new AppError("Invalid role", 400));
     }
 
     // Build query
-    let query = Model.findById(
-      req.user._id
-    );
+    let query = Model.findById(req.user._id);
 
     // Only populate school for school-based roles
     if (SCHOOL_ROLES.includes(role)) {
@@ -538,12 +416,7 @@ exports.getMe = async (
     const user = await query;
 
     if (!user) {
-      return next(
-        new AppError(
-          "User not found",
-          404
-        )
-      );
+      return next(new AppError("User not found", 404));
     }
 
     // Remove password
@@ -561,15 +434,11 @@ exports.getMe = async (
         },
         role,
       },
-      "Profile retrieved"
+      "Profile retrieved",
     );
   } catch (err) {
-    console.error(
-      "GET ME ERROR:",
-      err
-    );
+    console.error("GET ME ERROR:", err);
 
     next(err);
   }
 };
-

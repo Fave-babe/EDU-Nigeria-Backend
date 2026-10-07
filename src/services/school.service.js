@@ -9,7 +9,12 @@ const AcademicSession = require("../models/AcademicSession.model");
 const Enrollment = require("../models/Enrollement.model");
 const Attendance = require("../models/attendance.model");
 const { ROLES } = require("../config/constant");
-const createSchool = async (data, userId) => {
+
+// ======================================================
+// PUBLIC SCHOOL REGISTRATION
+// ======================================================
+
+const registerSchoolApplication = async (data) => {
   const {
     adminFullName,
     adminEmail,
@@ -17,53 +22,75 @@ const createSchool = async (data, userId) => {
     ...schoolData
   } = data;
 
-  // ---------------------------------------------
-  // CREATE SCHOOL
-  // ---------------------------------------------
+  if (!adminFullName || !adminEmail || !adminPassword) {
+    const error = new Error(
+      "Proprietor/Admin name, email and password are required"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
 
-  const school = await School.create({
-    ...schoolData,
-    createdBy: userId,
-    lastModifiedBy: userId,
+  const normalizedAdminEmail = adminEmail.toLowerCase().trim();
+
+  const existingAdmin = await Admin.findOne({
+    email: normalizedAdminEmail,
   });
 
-  // ---------------------------------------------
-  // CREATE ADMIN FOR THE SCHOOL
-  // ---------------------------------------------
+  if (existingAdmin) {
+    const error = new Error(
+      "An account with this admin email already exists"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
 
-  if (adminFullName && adminEmail && adminPassword) {
-    const normalizedEmail = adminEmail
-      .toLowerCase()
-      .trim();
+  const normalizedSchoolEmail = schoolData.email
+    ?.toLowerCase()
+    .trim();
 
-    const existingAdmin = await Admin.findOne({
-      email: normalizedEmail,
-    });
+  const existingSchool = await School.findOne({
+    email: normalizedSchoolEmail,
+  });
 
-    if (existingAdmin) {
-      // Remove the school we just created because
-      // the Admin could not be created.
-      await School.findByIdAndDelete(school._id);
+  if (existingSchool) {
+    const error = new Error(
+      "A school with this email already exists"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
 
-      const error = new Error(
-        "An admin with this email already exists"
-      );
+  // Create school application as pending
+  const school = await School.create({
+    ...schoolData,
+    email: normalizedSchoolEmail,
+    status: "pending",
+    isActive: false,
+  });
 
-      error.statusCode = 409;
-      throw error;
-    }
-
+  try {
+    // Create the school administrator account,
+    // but keep it inactive until the school is approved.
     await Admin.create({
       fullName: adminFullName.trim(),
-      email: normalizedEmail,
+      email: normalizedAdminEmail,
       password: adminPassword,
       school: school._id,
       role: ROLES.ADMIN,
+      isActive: false,
     });
+  } catch (err) {
+    // Roll back the school if admin creation fails
+    await School.findByIdAndDelete(school._id);
+    throw err;
   }
 
   return school;
 };
+
+// ======================================================
+// GET SCHOOL
+// ======================================================
 
 const getSchoolById = async (schoolId) => {
   const school = await School.findById(schoolId);
@@ -76,6 +103,10 @@ const getSchoolById = async (schoolId) => {
 
   return school;
 };
+
+// ======================================================
+// GET SCHOOL DETAILS
+// ======================================================
 
 const getSchoolDetails = async (schoolId) => {
   const school = await School.findById(schoolId);
@@ -124,12 +155,18 @@ const getSchoolDetails = async (schoolId) => {
     }),
 
     Enrollment.find({ school: schoolId })
-      .populate("student", "firstName lastName email registrationNumber")
+      .populate(
+        "student",
+        "firstName lastName email registrationNumber"
+      )
       .populate("class", "name level arm")
       .populate("academicSession", "name"),
 
     Attendance.find({ school: schoolId })
-      .populate("student", "firstName lastName registrationNumber")
+      .populate(
+        "student",
+        "firstName lastName registrationNumber"
+      )
       .populate("class", "name level arm")
       .populate("academicSession", "name")
       .populate("recordedBy", "firstName lastName")
@@ -163,12 +200,115 @@ const getSchoolDetails = async (schoolId) => {
   };
 };
 
+// ======================================================
+// GET ALL SCHOOLS
+// ======================================================
+
 const getAllSchools = async () => {
-  const schools = await School.find()
-    .sort({ createdAt: -1 });
+  const schools = await School.find().sort({
+    createdAt: -1,
+  });
 
   return schools;
 };
+
+// ======================================================
+// GET PENDING SCHOOL APPLICATIONS
+// ======================================================
+
+const getPendingSchoolApplications = async () => {
+  const schools = await School.find({
+    status: "pending",
+  }).sort({
+    createdAt: -1,
+  });
+
+  return schools;
+};
+
+// ======================================================
+// APPROVE SCHOOL
+// ======================================================
+
+const approveSchool = async (schoolId, userId) => {
+  const school = await School.findById(schoolId);
+
+  if (!school) {
+    const error = new Error("School not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (school.status !== "pending") {
+    const error = new Error(
+      "Only pending school applications can be approved"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  school.status = "approved";
+  school.isActive = true;
+  school.lastModifiedBy = userId;
+
+  await school.save();
+
+  // Activate the school's administrator account
+  await Admin.updateMany(
+    { school: school._id },
+    {
+      $set: {
+        isActive: true,
+      },
+    }
+  );
+
+  return school;
+};
+
+// ======================================================
+// REJECT SCHOOL
+// ======================================================
+
+const rejectSchool = async (schoolId, userId) => {
+  const school = await School.findById(schoolId);
+
+  if (!school) {
+    const error = new Error("School not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (school.status !== "pending") {
+    const error = new Error(
+      "Only pending school applications can be rejected"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  school.status = "rejected";
+  school.isActive = false;
+  school.lastModifiedBy = userId;
+
+  await school.save();
+
+  // Keep the admin account but prevent login
+  await Admin.updateMany(
+    { school: school._id },
+    {
+      $set: {
+        isActive: false,
+      },
+    }
+  );
+
+  return school;
+};
+
+// ======================================================
+// TOGGLE SCHOOL STATUS
+// ======================================================
 
 const toggleSchoolStatus = async (schoolId, userId) => {
   const school = await School.findById(schoolId);
@@ -176,6 +316,14 @@ const toggleSchoolStatus = async (schoolId, userId) => {
   if (!school) {
     const error = new Error("School not found");
     error.statusCode = 404;
+    throw error;
+  }
+
+  if (school.status !== "approved") {
+    const error = new Error(
+      "Only approved schools can be activated or deactivated"
+    );
+    error.statusCode = 400;
     throw error;
   }
 
@@ -187,11 +335,18 @@ const toggleSchoolStatus = async (schoolId, userId) => {
   return school;
 };
 
+// ======================================================
+// UPDATE SCHOOL
+// ======================================================
+
 const updateSchool = async (schoolId, data, userId) => {
+  // Prevent normal school editing from changing approval state
+  const { status, isActive, ...schoolData } = data;
+
   const school = await School.findByIdAndUpdate(
     schoolId,
     {
-      ...data,
+      ...schoolData,
       lastModifiedBy: userId,
     },
     {
@@ -209,11 +364,18 @@ const updateSchool = async (schoolId, data, userId) => {
   return school;
 };
 
+// ======================================================
+// EXPORTS
+// ======================================================
+
 module.exports = {
-  createSchool,
+  registerSchoolApplication,
   getSchoolById,
   getSchoolDetails,
   getAllSchools,
+  getPendingSchoolApplications,
+  approveSchool,
+  rejectSchool,
   updateSchool,
   toggleSchoolStatus,
 };

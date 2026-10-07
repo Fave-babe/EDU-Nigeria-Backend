@@ -11,15 +11,29 @@ const {
 
 const { ROLES } = require("../config/constant");
 
-// Create school
+// =========================================================
+// PUBLIC SCHOOL REGISTRATION
+// =========================================================
+
 router.post(
-  "/",
-  protect,
-  RestrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN),
-  schoolController.createSchool
+  "/register",
+  schoolController.registerSchoolApplication
 );
 
-// Get all schools
+// =========================================================
+// PUBLIC ACTIVE SCHOOLS
+// =========================================================
+
+router.get(
+  "/public",
+  schoolController.getPublicSchools
+);
+
+// =========================================================
+// GET ALL SCHOOLS
+// SUPER ADMIN ONLY
+// =========================================================
+
 router.get(
   "/",
   protect,
@@ -27,13 +41,47 @@ router.get(
   schoolController.getAllSchools
 );
 
-// Public schools
+// =========================================================
+// GET PENDING SCHOOL APPLICATIONS
+// SUPER ADMIN ONLY
+// =========================================================
+
 router.get(
-  "/public",
-  schoolController.getPublicSchools
+  "/applications/pending",
+  protect,
+  RestrictTo(ROLES.SUPER_ADMIN),
+  schoolController.getPendingSchoolApplications
 );
 
-// Complete school details
+// =========================================================
+// APPROVE SCHOOL APPLICATION
+// SUPER ADMIN ONLY
+// =========================================================
+
+router.patch(
+  "/:id/approve",
+  protect,
+  RestrictTo(ROLES.SUPER_ADMIN),
+  schoolController.approveSchool
+);
+
+// =========================================================
+// REJECT SCHOOL APPLICATION
+// SUPER ADMIN ONLY
+// =========================================================
+
+router.patch(
+  "/:id/reject",
+  protect,
+  RestrictTo(ROLES.SUPER_ADMIN),
+  schoolController.rejectSchool
+);
+
+// =========================================================
+// COMPLETE SCHOOL DETAILS
+// SUPER ADMIN ONLY
+// =========================================================
+
 router.get(
   "/:id/details",
   protect,
@@ -41,7 +89,10 @@ router.get(
   schoolController.getSchoolDetails
 );
 
-// Get single school
+// =========================================================
+// GET SINGLE SCHOOL
+// =========================================================
+
 router.get(
   "/:id",
   protect,
@@ -53,7 +104,10 @@ router.get(
   schoolController.getSchool
 );
 
-// Update school
+// =========================================================
+// UPDATE SCHOOL
+// =========================================================
+
 router.put(
   "/:id",
   protect,
@@ -64,7 +118,11 @@ router.put(
   schoolController.updateSchool
 );
 
-// Activate / deactivate school
+// =========================================================
+// ACTIVATE / DEACTIVATE SCHOOL
+// SUPER ADMIN ONLY
+// =========================================================
+
 router.patch(
   "/:id/status",
   protect,
