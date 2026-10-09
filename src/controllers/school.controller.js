@@ -104,6 +104,25 @@ exports.getAllSchools = async (req, res, next) => {
 };
 
 // ======================================================
+// GET PLATFORM OVERVIEW
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.getPlatformOverview = async (req, res, next) => {
+  try {
+    const overview = await schoolService.getPlatformOverview();
+
+    api.success(
+      res,
+      { overview },
+      "Platform overview retrieved successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ======================================================
 // GET PENDING SCHOOL APPLICATIONS
 // SUPER ADMIN ONLY
 // ======================================================
@@ -188,6 +207,42 @@ exports.toggleSchoolStatus = async (req, res, next) => {
       res,
       { school },
       "School status updated successfully"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ======================================================
+// SET SCHOOL ADMIN CREDENTIALS
+// SUPER ADMIN ONLY
+// ======================================================
+
+exports.setupSchoolAdminCredentials = async (req, res, next) => {
+  try {
+    const { fullName, email, password } = req.body;
+
+    const admin =
+      await schoolService.setupSchoolAdminCredentials(
+        req.params.id,
+        fullName,
+        email,
+        password
+      );
+
+    api.success(
+      res,
+      {
+        admin: {
+          _id: admin._id,
+          fullName: admin.fullName,
+          email: admin.email,
+          school: admin.school,
+          role: admin.role,
+          isActive: admin.isActive,
+        },
+      },
+      "School login credentials set successfully"
     );
   } catch (err) {
     next(err);

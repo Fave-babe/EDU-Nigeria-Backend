@@ -41,6 +41,14 @@ router.get(
   schoolController.getAllSchools
 );
 
+// SuperAdmin platform overview
+router.get(
+  "/overview",
+  protect,
+  RestrictTo(ROLES.SUPER_ADMIN),
+  schoolController.getPlatformOverview
+);
+
 // =========================================================
 // GET PENDING SCHOOL APPLICATIONS
 // SUPER ADMIN ONLY
@@ -128,6 +136,13 @@ router.patch(
   protect,
   RestrictTo(ROLES.SUPER_ADMIN),
   schoolController.toggleSchoolStatus
+);
+
+router.post(
+  "/:id/admin-credentials",
+  protect,
+  RestrictTo(ROLES.SUPER_ADMIN),
+  schoolController.setupSchoolAdminCredentials
 );
 
 module.exports = router;
